@@ -37,16 +37,19 @@ def create_block_types():
 
 
 BLOCK_TYPES = create_block_types()
-print(BLOCK_TYPES)
+#print(BLOCK_TYPES)
+
+
 
 class Block:
 
     def __init__(self, test_block_data=None):
         if test_block_data:
             b = test_block_data
+            self.left = 0
         else:
-            b = BLOCK_TYPES[5] # choice(BLOCK_TYPES)
-        self.left = WIDTH // 2
+            b = choice(BLOCK_TYPES)
+            self.left = WIDTH // 2
         self.top = 0
         self.landed = False
 
@@ -57,7 +60,6 @@ class Block:
         self.height = b["h"]
 
 
-        print(self)
         print(f"w {self.width} h {self.height}")
 
 
@@ -73,11 +75,8 @@ class Block:
 
 
     def get_top(self):
-        #print("My top is", self.top)
-        #print("My components are", self.get_components())
-
         x = self.get_components("block[0] + self.top == self.top")
-        print("my top blocks are", x)
+
         return x
 
 
@@ -95,44 +94,32 @@ class Block:
 
 
 
-        ## if my bottom is one less than the other blocks top...
+        ## if any of my components is one less than the other blocks top...
 
-        #print("My bottom blocks are", self.get_bottom())
-        #print("Their top blocks are", block.get_top())
 
-        for my_comp in self.get_bottom():
+
+
+        for my_comp in self.get_components():
             #print("Checking", my_comp, "against", block.get_components(), end=" ")
             for their_comp in block.get_components():
-                #print("against", their_comp, end=" ")
 
                 if my_comp[1] == their_comp[1]:  # horizontally aligned
-                    if my_comp[0] == their_comp[0] - 1:  # vertically tesselating
+                    if my_comp[0] + 1 == their_comp[0]:  # vertically tesselating
+                        #print("Tesselate")
                         return True
 
 
         return False
 
-    def update(self, top_line, landed_blocks=None):
-        if not landed_blocks:
-            landed_blocks = []
 
-        if self.top + 3 < top_line:
-            return False
-        
-        for b in landed_blocks:             # improve in future.. BSP?
-            if self.check_tesselate(b):
-                return True
-
-
-        return False
 
     def collision(self, x, y, blocks):
 
         for b in blocks:
-            print("going to check new pos", y, x, "against", b.get_components())
+            #print("going to check new pos", y, x, "against", b.get_components())
             for c in b.get_components():
                 if (y, x) == c:
-                    print(f"COLLISION, because new x is {y, x} and this hits {c}")
+                    #print(f"COLLISION, because new x is {y, x} and this hits {c}")
 
                     return True
         return False
@@ -141,22 +128,28 @@ class Block:
     def move(self, d, blocks, landed_blocks, top_line):
         d = d.decode()
 
-        print(f"Block {self.id} is moving!")
+        #print(f"Block {self.id} is moving!")
 
 
         if ord(d) == 27:
             quit()
 
         touch_bottom = False
+        tesselate = False
         
         new_x = self.left + (1 if d == "d" else -1)
         if self.top+self.height < (HEIGHT):
-            self.top += 1
+            for b in landed_blocks:
+                if self.check_tesselate(b):
+                    tesselate = True
+                    break
+            else:
+                self.top += 1
         else:
             touch_bottom = True
     
         if d == "d" and self.left + self.width < WIDTH:
-            print("allowed to move right - did not hit edge")
+            #print("allowed to move right - did not hit edge")
             if not self.collision(new_x+self.width-1, self.top+self.height-1, landed_blocks):
                 self.left = new_x
 
@@ -169,16 +162,16 @@ class Block:
 
 
 
-        touch_top_line = self.update(top_line, landed_blocks)
+
         
-        if touch_bottom:
-            print("Stop because touch bottom")
-        elif touch_top_line:
-            print("stop because tesselate")
+        # if touch_bottom:
+        #     print("Stop because touch bottom")
+        # elif tesselate:
+        #     print("stop because tesselate")
 
         print("End of move pos is ", self.get_components())
 
-        return self if touch_bottom or touch_top_line else None
+        return self if touch_bottom or tesselate else None
 
             
 
@@ -216,7 +209,8 @@ def play_game():
 
     blocks = []
     game_over = False
-    landed = []
+    landed = [Block({'parts': [(18, 0), (18, 1), (18, 2), (18, 3), (18, 4), (18, 5), (18, 6), (18, 7), (18, 8), (18, 9), (18, 11), (18, 12), (18, 13), (18, 14), (18, 15), (19, 0), (19, 1), (19, 2), (19, 3), (19, 4), (19, 5), (19, 6), (19, 7), (19, 8), (19, 9), (19, 10), (19, 11), (19, 12), (19, 13), (19, 14), (19, 15)], 'w': 16, 'h': 2})]
+
     while not game_over:
 
         current_block = Block()
@@ -258,6 +252,7 @@ if __name__ == "__main__":
 
 
     play_game()
+
 
 
 
