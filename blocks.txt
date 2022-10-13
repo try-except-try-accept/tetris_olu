@@ -1,0 +1,40 @@
+1
+4
+X
+X
+X
+X
+
+3
+3
+XX
+ X
+ XX
+
+3
+3
+XXX
+  X
+  X
+
+3
+3
+XXX
+X
+X
+
+3
+2
+ XX
+XX
+
+2
+2
+XX
+XX
+
+3
+3
+XXX
+ X
+ X
