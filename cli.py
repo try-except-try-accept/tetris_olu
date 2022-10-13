@@ -3,11 +3,11 @@
 from os import system
 from random import choice
 from getch import getch, pause
-
+import numpy as np
 
 WIDTH = 16
 HEIGHT = 20
-
+BLANK_LINE = "|" + (" " * WIDTH) + "|"
 
 def create_block_types():
     blocks = '''X
@@ -59,31 +59,51 @@ class Block:
         self.left = WIDTH // 2
         self.top = 0
         self.landed = False
-        self.right = max(b, key=lambda x: x[1])[1] + 1
-        self.bottom = max(b, key=lambda x: x[0])[0] + 1
+
         self.block_type = b
+        self.width = max(self.block_type, key=lambda x: x[1])[1] + 1
+        self.height = max(self.block_type, key=lambda x: x[0])[0] + 1
+
+        self.update()
+
+    def get_components(self):
+
+        return [[block[1] + self.left, block[0] + self.top] for block in self.block_type]
 
 
-    def update(self, landed_blocks):
-        self.components = [[block[1] + self.left, block[0] + self.top] for block in self.block_type]
+    def rotate(self):
+        self.height, self.width = self.width, self.height
+
+
+
+    def update(self, landed_blocks=None):
+        if not landed_blocks:
+            landed_blocks = []
+        
         for b in landed_blocks:
-            for c in self.components:
-                if c[0] == b.top-1 and c[1] == b.left:
-                    return True
+            if self.tesselate(b):
+                return True
+
 
         return False
         
 
     def move(self, d, blocks, landed_blocks):
+        d = d.decode()
+
+
+        if ord(d) == 27:
+            quit()
+
         touch_bottom = False
         
         new_x = self.left + (1 if d == "d" else -1)
         new_y = self.top + 1
     
-        if d == "d" and new_x < WIDTH:
+        if d == "d" and self.left + self.width < WIDTH:
             self.left = new_x
 
-        if d == "a" and new_x > 0:
+        if d == "a" and new_x >= 0:
             self.left = new_x
 
         if new_y < HEIGHT:
@@ -93,7 +113,7 @@ class Block:
             touch_bottom = True
 
         touch_top_line = self.update(landed_blocks)
-
+        
 
         return touch_bottom or touch_top_line
 
@@ -102,15 +122,18 @@ class Block:
     
 
 
-def print_game(blocks):
-
+def print_game(current_block, landed_blocks):
     
-    for y in range(HEIGHT):
+    
+    empty = ((BLANK_LINE + "\n") * current_block.top)[:-1]
+    print(empty)
+    
+    for y in range(current_block.top, HEIGHT):
         print("|", end="")
         for x in range(WIDTH):
             char = " "
-            for b in blocks:
-                for c in b.components:
+            for b in landed_blocks + [current_block]:
+                for c in b.get_components():
                     if c[0] == x and c[1] == y:
                         char = "X"
             print(char, end="")        
@@ -119,27 +142,33 @@ def print_game(blocks):
 
 
 
+
 def play_game():
 
-    blocks = []
-    game_over = False
-    
-    while not game_over:
+    try:
 
-        touch = False       
-        current_block = Block()
-        blocks = [current_block]
-        landed = []
+        blocks = []
+        game_over = False
 
-        while not touch:
-            
-            direction = getch()
-            system("cls")
-            touch = current_block.move(direction, blocks, landed)
-            print_game(blocks)
-            
-        landed.append(current_block)
+        while not game_over:
 
+            touch = False
+            current_block = Block()
+            blocks = [current_block]
+            landed = []
+
+            while not touch:
+
+                direction = getch()
+
+                system("cls")
+                touch = current_block.move(direction, blocks, landed)
+                print_game(current_block, landed)
+
+            landed.append(current_block)
+    except Exception as e:
+        print(e)
+        input()
 
 if __name__ == "__main__":
     play_game()
