@@ -2,9 +2,9 @@
 
 from os import system
 from random import choice, randint
-from getch import getch, pause
-import numpy as np
+from getch import getch
 from time import sleep
+from math import cos, sin, radians, ceil
 
 WIDTH = 16
 HEIGHT = 20
@@ -23,6 +23,7 @@ def create_block_types():
         this_block = block_types[-1]
         this_block["w"] = int(b.pop(0))
         this_block["h"] = int(b.pop(0))
+        this_block["o"] = tuple(map(int, b.pop(0).split(",")))
         this_block_coords = set()
         for y, row in enumerate(b):
             for x, col in enumerate(row):
@@ -38,6 +39,7 @@ def create_block_types():
 
 BLOCK_TYPES = create_block_types()
 
+#####################################################
 
 class Block:
     """Object representation of a tetris block"""
@@ -55,26 +57,51 @@ class Block:
         self.block_type = b["parts"]
         self.width = b["w"]
         self.height = b["h"]
+        self.center = b["o"]
+
 
     def __repr__(self):
         return "I am block: " + str(self.block_type)
 
-    def get_components(self, condition="True"):
+    def get_components(self, condition="True", relative=None):
         """Return certain block components according to a condition (if given)"""
-        return [(block[0] + self.top, block[1] + self.left) for block in self.block_type if eval(condition)]
+
+        if relative is None:
+            y = self.top
+            x = self.left
+        else:
+            y, x = relative
+
+
+        return [(block[0] + y, block[1] + x) for block in self.block_type if eval(condition, {"block":block, "self":self})]
 
     def get_top(self):
         """Get top-most component parts"""
-        x = self.get_components("block[0] + self.top == self.top")
+        x = self.get_components(condition="block[0] + self.top == self.top")
         return x
 
     def get_bottom(self):
         """Get bottom-most component parts"""
-        return self.get_components("block[0] + self.top == self.top + self.height - 1")
+        return self.get_components(condition="block[0] + self.top == self.top + self.height - 1")
 
     def rotate(self):
         """Rotate block - tbc"""
         self.height, self.width = self.width, self.height
+        new_parts = []
+        q, p = self.center
+
+        print("Parts were", self.block_type)
+        a = radians(90)
+        for part in self.block_type:
+            y, x = part
+
+            qx = p + cos(a) * (x - p) - sin(a) * (y - q)
+            qy = q + sin(a) * (x - p) + cos(a) * (y - q)
+            new_parts.append((ceil(qy), ceil(qx)))
+
+        self.block_type = new_parts
+        print("Parts are now", self.block_type)
+
 
     def check_tesselate(self, block):
         """Check for tesselation with another block"""
@@ -91,8 +118,12 @@ class Block:
 
         for b in blocks:
             for c in b.get_components():
-                if (y, x) == c:
-                    return True
+                mine = self.get_components(relative=(y,x))
+                #print(f"checking block {c} against my components {mine}")
+                for my_comp in mine:
+                    if my_comp == c:
+                        #print(f"collsion at {my_comp}")
+                        return True
         return False
 
     def move(self, d, landed_blocks, top_line):
@@ -104,17 +135,8 @@ class Block:
 
         touch_bottom = False
         tesselate = False
-        
+
         new_x = self.left + (1 if d == "d" else -1)
-        if self.top+self.height < (HEIGHT):
-            for b in landed_blocks:
-                if self.check_tesselate(b):
-                    tesselate = True
-                    break
-            else:
-                self.top += 1
-        else:
-            touch_bottom = True
 
         new_bottom = self.top+self.height-1
     
@@ -125,6 +147,19 @@ class Block:
         elif d == "a" and new_x >= 0:
             if not self.collision(new_x, new_bottom, landed_blocks):
                 self.left = new_x
+
+        elif d == "s":
+            self.rotate()
+
+        if self.top + self.height < (HEIGHT):
+            for b in landed_blocks:
+                if self.check_tesselate(b):
+                    tesselate = True
+                    break
+            else:
+                self.top += 1
+        else:
+            touch_bottom = True
 
         return self if touch_bottom or tesselate else None
 
@@ -148,6 +183,7 @@ def print_game(top_line, current_block, landed_blocks):
             print(char, end="")        
 
         print("|")
+    print("-" * WIDTH)
 
 ###############################################################
 
@@ -158,7 +194,7 @@ def play_game():
 
     blocks = []
     game_over = False
-    landed = [Block({'parts': [(18, 0), (18, 1), (18, 2), (18, 3), (18, 4), (18, 5), (18, 6), (18, 7), (18, 8), (18, 9), (18, 11), (18, 12), (18, 13), (18, 14), (18, 15), (19, 0), (19, 1), (19, 2), (19, 3), (19, 4), (19, 5), (19, 6), (19, 7), (19, 8), (19, 9), (19, 10), (19, 11), (19, 12), (19, 13), (19, 14), (19, 15)], 'w': 16, 'h': 2})]
+    landed = []
 
     while not game_over:
 
@@ -169,7 +205,7 @@ def play_game():
             if do_getch:
                 direction = getch()
             else:
-                direction = choice([b'a', b'd'])
+                direction = choice([b'a', b'd', b's'])
                 sleep(0.01)
 
             system("cls")
@@ -187,16 +223,9 @@ def play_game():
 
 if __name__ == "__main__":
 
-
     #block2 = Block({"parts":[[2,2], [1,2], [0,2], [1,1], [1,0]], "w":2, "h":3})
-
     #block1 = Block({"parts":[[0,1], [0,0]], "w":2, "h":1})
-
-
     #print(block1.check_tesselate(block2))
-
-
-
 
     play_game()
 
