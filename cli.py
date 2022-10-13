@@ -1,4 +1,4 @@
-## tetris olu!!
+# tetris olu!!
 
 from os import system
 from random import choice
@@ -75,13 +75,15 @@ class Block:
         self.height, self.width = self.width, self.height
 
 
+    def check_tesselate(self, block):
+        return False
 
     def update(self, landed_blocks=None):
         if not landed_blocks:
             landed_blocks = []
         
         for b in landed_blocks:
-            if self.tesselate(b):
+            if self.check_tesselate(b):
                 return True
 
 
@@ -106,7 +108,7 @@ class Block:
         if d == "a" and new_x >= 0:
             self.left = new_x
 
-        if new_y < HEIGHT:
+        if new_y + self.height <= HEIGHT:
             self.top = new_y
 
         else:               
@@ -115,7 +117,7 @@ class Block:
         touch_top_line = self.update(landed_blocks)
         
 
-        return touch_bottom or touch_top_line
+        return self if touch_bottom or touch_top_line else None
 
             
 
@@ -123,6 +125,8 @@ class Block:
 
 
 def print_game(current_block, landed_blocks):
+
+    print("landed", landed_blocks)
     
     
     empty = ((BLANK_LINE + "\n") * current_block.top)[:-1]
@@ -149,23 +153,23 @@ def play_game():
 
         blocks = []
         game_over = False
-
+        landed = []
         while not game_over:
 
-            touch = False
             current_block = Block()
             blocks = [current_block]
-            landed = []
 
-            while not touch:
+            newly_landed = None
+
+            while newly_landed is None:
 
                 direction = getch()
 
                 system("cls")
-                touch = current_block.move(direction, blocks, landed)
+                newly_landed = current_block.move(direction, blocks, landed)
                 print_game(current_block, landed)
-
             landed.append(current_block)
+
     except Exception as e:
         print(e)
         input()
